@@ -1,5 +1,9 @@
 pipeline {
-    agent any
+    agent {
+    kubernetes {
+      yamlFile 'agent.yaml'
+      }
+    }
     parameters{
              string( defaultValue: '', name: 'repo', description: 'Repo')
 	     string( defaultValue: 'master', name: 'branch', description: 'Branch')
@@ -12,19 +16,11 @@ pipeline {
 			expression {return 'run' in env.actions.split(',')}
 		}
             steps {
-		dir('repo') {
-		    checkout scm: [$class: 'GitSCM', userRemoteConfigs: [[url: "${params.repo}", credentialsId: 'atolkachev']], branches: [[name: "${env.branch}"]]], poll: false
-		}
-            }
-        }
-	stage('git') {
-		when {
-			expression {return 'run' in env.actions.split(',')}
-		}
-            steps {
-                sh 'git status'
-		dir('repo') {
-			sh 'git status'
+		container('docker') {
+			dir('repo') {
+		    		checkout scm: [$class: 'GitSCM', userRemoteConfigs: [[url: "${params.repo}", credentialsId: 'atolkachev']], branches: [[name: "${env.branch}"]]], poll: false
+			    	sh('docker build -t my_app:v1 .')
+			}
 		}
             }
         }
